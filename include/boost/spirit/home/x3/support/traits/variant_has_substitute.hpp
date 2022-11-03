@@ -28,7 +28,7 @@ namespace boost { namespace spirit { namespace x3 { namespace traits
         typedef typename
             mpl::eval_if<
                 is_same<iter_1, end>,
-                mpl::find_if<types, traits::is_substitute<T, mpl::_1>>,
+                mpl::find_if<types, traits::is_substitute<mpl::_1, T>>,
                 mpl::identity<iter_1>
             >::type
         iter;

@@ -128,10 +128,13 @@ namespace boost { namespace spirit { namespace x3 { namespace detail
         >;
     };
 
-    template <template <typename...> typename A, template <typename...> typename Seq, typename T>
-    struct type_sequence_to_alternative_attribute<A, Seq<unused_type, T>>
+    template <template <typename...> typename A, template <typename...> typename Seq, typename T, typename... Ts>
+    struct type_sequence_to_alternative_attribute<A, Seq<unused_type, T, Ts...>>
     {
-        using type = boost::optional<T>;
+       using type = conditional_t<sizeof...(Ts) == 0,
+           boost::optional<T>,
+           boost::optional<A<T, Ts...>>
+       >;
     };
 
     template <template <typename...> class A, typename P, typename C>

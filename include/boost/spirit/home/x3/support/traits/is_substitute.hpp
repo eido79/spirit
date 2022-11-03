@@ -70,13 +70,17 @@ namespace boost { namespace spirit { namespace x3 { namespace traits
             >::type>
           : mpl::true_ {};
 
+        // Can T substitute a Variant<...>?
         template <typename T, typename Attribute>
-        struct is_substitute_impl<T, Attribute,
-            typename enable_if<
-                is_variant<Attribute>
-            >::type>
-          : variant_has_substitute<Attribute, T>
-        {};
+        struct is_substitute_impl<T, Attribute, typename enable_if<is_variant<Attribute>>::type>
+        {
+            // That is:
+            // boost::variant<X, Y, Z> t;
+            // boost::variant<Y, X> attribute;
+            // t = attribute;
+            // or better: move_to(attribute, t) should work
+            using type = mpl::bool_<std::is_convertible_v<Attribute, T>>;
+        };
     }
 
     template <typename T, typename Attribute, typename Enable /*= void*/>

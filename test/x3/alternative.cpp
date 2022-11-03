@@ -10,6 +10,7 @@
 #include <boost/variant.hpp>
 #include <boost/fusion/include/vector.hpp>
 #include <boost/fusion/include/at.hpp>
+#include <boost/fusion/include/std_pair.hpp>
 
 #include <string>
 #include <iostream>
@@ -304,14 +305,14 @@ main()
         BOOST_TEST(test_attr("abaabb", +('a' >> attr(Foo{}) | 'b' >> attr(int{})), x));
     }
 
-    {   // compile checks
+    { // Compile time attribute checks
         using namespace boost::spirit::x3;
 
         test_attribute_of_alternative<boost::variant<char, int>>(char_ | int_);
         test_attribute_of_alternative<boost::variant<char, int, double>>(char_ | int_ | double_);
-        test_attribute_of_alternative<boost::variant<unused_type, char, int, double>>(char_ | int_ | double_ | eps);
-        test_attribute_of_alternative<boost::variant<unused_type, char, int, double>>(char_ | int_ | double_ | eps | int_);
-        test_attribute_of_alternative<boost::variant<unused_type, char, int, double>>(char_ | int_ | double_ | eps | int_ | eps);
+        test_attribute_of_alternative<boost::optional<boost::variant<char, int, double>>>(char_ | int_ | double_ | eps);
+        test_attribute_of_alternative<boost::optional<boost::variant<char, int, double>>>(char_ | int_ | double_ | eps | int_);
+        test_attribute_of_alternative<boost::optional<boost::variant<char, int, double>>>(char_ | int_ | double_ | eps | int_ | eps);
         test_attribute_of_alternative<unused_type>(eps);
         test_attribute_of_alternative<boost::optional<int>>(eps | int_);
         test_attribute_of_alternative<boost::optional<int>>(eps | int_);
@@ -320,8 +321,33 @@ main()
         test_attribute_of_alternative<int>(int_);
 
         test_attribute_of_alternative<boost::variant<boost::fusion::deque<int, int>, char>>((int_ >> int_) | char_);
-        test_attribute_of_alternative<boost::variant<unused_type, char, boost::fusion::deque<int, int>>>(char_ | (int_ >> int_) | eps);
+        test_attribute_of_alternative<boost::optional<boost::variant<char, boost::fusion::deque<int, int>>>>(char_ | (int_ >> int_) | eps);
         test_attribute_of_alternative<boost::optional<boost::fusion::deque<int, int>>>(eps | (int_ >> int_));
+    }
+
+    { // boost variant order of parameters relevant in 1.78.0 ? #721
+        struct A {};
+        struct B {};
+        struct C {};
+
+        using namespace boost::spirit::x3;
+        char const* s = "";
+        boost::variant<std::pair<int, boost::variant<B, A>>, C> target;
+        auto expr = attr(int{}) >> (attr(A{}) | attr(B{})) | attr(C{});
+        BOOST_TEST(test_attr(s, expr, target));
+    }
+
+    { // A | A not being simplified to A in 1.78.0 #722
+        struct A {};
+        struct B {};
+        struct C {};
+
+        using namespace boost::spirit::x3;
+        char const* s = "";
+        using X = boost::variant<B, A>;
+        boost::variant<std::pair<A, X>, C> target;
+        auto expr = ((attr(A{}) | attr(A{})) >> lit("=") >> (attr(A{}) | attr(B{}))) | attr(C{});
+        BOOST_TEST(test_attr(s, expr, target));
     }
 
     return boost::report_errors();
